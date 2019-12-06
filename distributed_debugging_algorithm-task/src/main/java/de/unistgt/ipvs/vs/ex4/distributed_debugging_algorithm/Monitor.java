@@ -1,6 +1,7 @@
 package de.unistgt.ipvs.vs.ex4.distributed_debugging_algorithm;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,12 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Monitor implements Runnable {
 
 	/**
-	 * The state consists on vector timestamp and local variables of each
-	 * process. In this class, a state is represented by messages (events)
-	 * indices of each process. The message contains a local variable and vector
-	 * timestamp, see Message class. E.g. if state.processesMessagesCurrentIndex
-	 * contains {1, 2}, it means that the state contains the second message
-	 * (event) from process1 and the third message (event) from process2
+	 * The state consists on vector timestamp and local variables of each process.
+	 * In this class, a state is represented by messages (events) indices of each
+	 * process. The message contains a local variable and vector timestamp, see
+	 * Message class. E.g. if state.processesMessagesCurrentIndex contains {1, 2},
+	 * it means that the state contains the second message (event) from process1 and
+	 * the third message (event) from process2
 	 */
 	private class State {
 		// Message indices of each process
@@ -61,8 +62,8 @@ public class Monitor implements Runnable {
 	// (build lattice) whenever runningProcesses equals zero.
 	private AtomicInteger runningProcesses;
 	/*
-	 * Q1, Q2, ..., Qn It represents the processes' queue. See distributed
-	 * debugging algorithm from global state lecture!
+	 * Q1, Q2, ..., Qn It represents the processes' queue. See distributed debugging
+	 * algorithm from global state lecture!
 	 */
 	private List<List<Message>> processesMessages;
 
@@ -112,8 +113,8 @@ public class Monitor implements Runnable {
 	}
 
 	/**
-	 * Whenever a process terminates, it notifies the Monitor. Monitor only
-	 * starts to build lattice and check predicates when all processes terminate
+	 * Whenever a process terminates, it notifies the Monitor. Monitor only starts
+	 * to build lattice and check predicates when all processes terminate
 	 *
 	 * @param processId
 	 */
@@ -144,7 +145,7 @@ public class Monitor implements Runnable {
 
 		// check predicates for part (b)
 		for (int predicateNo = 0; predicateNo < 3; predicateNo++) {
-			System.out.printf("Predicate%d-----------------------------------\n",predicateNo);
+			System.out.printf("Predicate%d-----------------------------------\n", predicateNo);
 			states.add(initialState); // add the initial state to states list
 			buildLattice(predicateNo, 0, 1);
 			states.clear();
@@ -153,7 +154,7 @@ public class Monitor implements Runnable {
 
 		if (numberOfProcesses > 2) {
 			int predicateNo = 3;
-			System.out.printf("Predicate%d-----------------------------------\n",predicateNo);
+			System.out.printf("Predicate%d-----------------------------------\n", predicateNo);
 			states.add(initialState); // add the initial state to states list
 			buildLattice(predicateNo, 0, 2);
 			states.clear();
@@ -162,17 +163,51 @@ public class Monitor implements Runnable {
 	}
 
 	public void buildLattice(int predicateNo, int process_i_id, int process_j_id) {
-		// TODO
-		/*
-		 * - implement this function to build the lattice of consistent states.
-		 * - The goal of building the lattice is to check a predicate if it is
-		 * possibly or/and definitely True. Thus your function should stop
-		 * whenever the predicate evaluates to both possibly and definitely
-		 * True. NOTE1: this function should call findReachableStates and
-		 * checkPredicate functions. NOTE2: predicateNo, process_i_id and
-		 * process_j_id are described in checkPredicate function.
-		 */
+		// Fringe for the next states
+		LinkedList<State> statesToCheck = new LinkedList<State>();
 
+		// Add initial state
+		statesToCheck.add(this.states.get(0));
+
+		// Clear our global states. This should contain a maximum of one element,
+		// which is processed by checkPredicate() and not read elsewhere
+		this.states.clear();
+
+		// Traverse all states which have a child for which the predicate is false
+		// If we find a path through lattice where predicate stays false
+		// -> We can know that definitelyTrue is false
+		boolean lastPredSet = false;
+		while (!statesToCheck.isEmpty()) {
+			System.out.println("Checking State: " + Arrays.toString(statesToCheck.get(0).getProcessesMessagesCurrentIndex()));
+			// Process all reachable states from current state
+			for (State currentReachableState : findReachableStates(statesToCheck.removeFirst())) {
+			
+				// Add only this state to our global states-List
+				this.states.add(currentReachableState);
+
+				// Check if predicate is true in this state
+				boolean currentPredicate = checkPredicate(predicateNo, process_i_id, process_j_id);
+
+				// Predicate is false for current child -> possible way without predicate
+				// becoming true
+				if (!currentPredicate) {
+					// Add this node to states that should be checked because there is a way though
+					// the lattice
+					statesToCheck.addLast(currentReachableState);
+				} else {
+					// Found one state where predicate is true -> can set possibbleTrue predicate
+					this.possiblyTruePredicatesIndex[predicateNo] = true;
+				}
+
+				lastPredSet = currentPredicate;
+
+				// Clear global states again to ensure max. 1 element for checkPredicate()
+				this.states.clear();
+			}
+		}
+
+		// Last state to check was a final state, save the predicate
+		definitelyTruePredicatesIndex[predicateNo] = lastPredSet;
 	}
 
 	/**
@@ -182,39 +217,101 @@ public class Monitor implements Runnable {
 	 * @return list of all reachable states
 	 */
 	private LinkedList<State> findReachableStates(State state) {
-		// TODO
-		/*
-		 * Given a state, implement a code that find all reachable states. The
-		 * function should return a list of all reachable states
-		 *
-		 */
-		return null;
+		// Init new Linked-List for States
+		LinkedList<State> reachableStates = new LinkedList<>();
+
+		// Get current state like ID S_00 or S_10
+		int messageIdsInCurrentState[] = state.getProcessesMessagesCurrentIndex();
+
+		// Check all processes for their next message, get its state and check if that
+		// state is reachable
+		// Stefan: For each process
+		OUTER: for (int processId = 0; processId < this.numberOfProcesses; processId++) {
+			// Get all Messages from process
+			List<Message> processMessages = this.processesMessages.get(processId);
+
+			// Get next message ID of current process (like S_01 or S_10)
+			int nextMsgId = messageIdsInCurrentState[processId] + 1;
+
+			// Skip if there is no next message from that process
+			if (nextMsgId >= processMessages.size()) {
+				continue;
+			}
+
+			// Get the next message object from current process using the ID
+			Message msg = processMessages.get(nextMsgId);
+
+			// Check if the new state (after processing the next message of
+			// the current process) is still consistent (compare next vector clock with
+			// the current clocks of all processes)
+			for (int otherProcessId = 0; otherProcessId < this.numberOfProcesses; otherProcessId++) {
+				VectorClock otherCurrentClock = processMessages.get(messageIdsInCurrentState[otherProcessId])
+						.getVectorClock();
+				boolean consistent = msg.getVectorClock().checkConsistency(otherProcessId, otherCurrentClock);
+
+				if (!consistent) {
+					// Skip this state, check next process for its next message
+					continue OUTER;
+				}
+			}
+
+			// Copy current State-ID
+			int newIndices[] = Arrays.copyOf(messageIdsInCurrentState, messageIdsInCurrentState.length);
+			// Adjust State-ID according to taken message
+			newIndices[processId]++;
+			// Create new State using new ID
+			State newState = new State(newIndices);
+			// Add new State to reachable states
+			reachableStates.add(newState);
+		}
+
+		return reachableStates;
 	}
 
 	/**
-	 * - check a predicate and return true if the predicate is **definitely**
-	 * True. - To simplify the code, we check the predicates only on local
-	 * variables of two processes. Therefore, process_i_Id and process_j_id
-	 * refer to the processes that have the local variables in the predicate.
-	 * The predicate0, predicate1 and predicate2 contain the local variables
-	 * from process1 and process2. whilst the predicate3 contains the local
-	 * variables from process1 and process3.
+	 * - check a predicate and return true if the predicate is **definitely** True.
+	 * - To simplify the code, we check the predicates only on local variables of
+	 * two processes. Therefore, process_i_Id and process_j_id refer to the
+	 * processes that have the local variables in the predicate. The predicate0,
+	 * predicate1 and predicate2 contain the local variables from process1 and
+	 * process2. whilst the predicate3 contains the local variables from process1
+	 * and process3.
 	 *
-	 * @param predicateNo:
-	 *            which predicate to validate
+	 * @param predicateNo: which predicate to validate
 	 * @return true if predicate is definitely true else return false
 	 */
 	private boolean checkPredicate(int predicateNo, int process_i_Id, int process_j_id) {
-		// TODO
-		/*
-		 * - check if a predicate is possibly and/or definitely true. - iterate
-		 * over all reachable states to check the predicates. NOTE: you can use
-		 * the following code switch (predicateNo) { case 0: predicate =
-		 * Predicate.predicate0(process_i_Message, process_j_Message); break;
-		 * case 1: ... }
-		 */
+		boolean predicate = false;
 
-		 return false;
+		for (State reachableState : this.states) {
+
+			int msg_i_id = reachableState.getProcessMessageCurrentIndex(process_i_Id);
+			int msg_j_id = reachableState.getProcessMessageCurrentIndex(process_j_id);
+			Message msg_i = this.processesMessages.get(process_i_Id).get(msg_i_id);
+			Message msg_j = this.processesMessages.get(process_j_id).get(msg_j_id);
+
+			switch (predicateNo) {
+			case 0:
+				predicate = Predicate.predicate0(msg_i, msg_j);
+				break;
+
+			case 1:
+				predicate = Predicate.predicate1(msg_i, msg_j);
+				break;
+
+			case 2:
+				predicate = Predicate.predicate2(msg_i, msg_j);
+				break;
+
+			case 3:
+				predicate = Predicate.predicate3(msg_i, msg_j);
+				break;
+			}
+
+			break;
+		}
+
+		return predicate;
 	}
 
 }

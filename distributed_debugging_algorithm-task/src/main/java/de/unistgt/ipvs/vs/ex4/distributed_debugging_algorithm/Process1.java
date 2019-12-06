@@ -49,11 +49,27 @@ public class Process1 extends AbstractProcess {
 		message = new Message(new VectorClock(vectorClock), this.localVariable);
 		monitor.receiveMessage(this.Id, message);
 
-		// TODO add part (c) changes here!
+		// Perform only for task c when there are 3 processes TODO: Remove if?
+		// line 6
+		if (this.vectorClock.get().length > 2) {
+			send(2, message); // send to process 2
+
+			// line 7
+			receivedMessage = receive(2); // receive from process 2
+			this.vectorClock.update(receivedMessage.getVectorClock());
+			this.localVariable = receivedMessage.getLocalVariable() - this.localVariable;
+			this.vectorClock.increment();
+
+			// notify the monitor
+			message = new Message(new VectorClock(vectorClock), this.localVariable);
+			monitor.receiveMessage(this.Id, message);
+		}
 		
+		System.out.println(this.localVariable);
 
 		// send terminate signal
 		monitor.processTerminated(this.Id);
+
 		System.out.printf("process:%d , the local variable= %d\n", this.Id, this.localVariable);
 	}
 

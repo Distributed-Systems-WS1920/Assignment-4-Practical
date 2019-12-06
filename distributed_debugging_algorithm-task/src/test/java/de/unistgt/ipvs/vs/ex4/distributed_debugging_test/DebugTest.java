@@ -16,10 +16,15 @@ import org.junit.rules.Timeout;
 public class DebugTest {
 
 	@Rule
-        public Timeout globalTimeout = Timeout.seconds(30);
+	public Timeout globalTimeout = Timeout.seconds(30);
 	
-        @Test
+	public boolean checkB = true;
+	public boolean checkC = false;
+
+	@Test
 	public void testPartb() throws InterruptedException {
+		
+		if (!checkB) return;
 
 		System.out.println("Check only part (b) from the question (4)");
 
@@ -51,29 +56,30 @@ public class DebugTest {
 		// checking ---------------
 
 		// check local variables
-		assertEquals(10,processes[0].getLocalVariable());
-		assertEquals(25,processes[1].getLocalVariable());
+		assertEquals(10, processes[0].getLocalVariable());
+		assertEquals(25, processes[1].getLocalVariable());
 
 		// check predicates
 		boolean[] possiblyTruePredicatesIndex = monitor.getPossiblyTruePredicatesIndex();
 		boolean[] definitelyTruePredicatesIndex = monitor.getDefinitelyTruePredicatesIndex();
 
 		// predicate0
-                assertEquals(true, possiblyTruePredicatesIndex[0]);
+		assertEquals(true, possiblyTruePredicatesIndex[0]);
 		assertEquals(true, definitelyTruePredicatesIndex[0]);
 
 		// predicate1
-		assertEquals(true, possiblyTruePredicatesIndex[1]);	
+		assertEquals(true, possiblyTruePredicatesIndex[1]);
 		assertEquals(false, definitelyTruePredicatesIndex[1]);
 
 		// predicate2
-		assertEquals(false, possiblyTruePredicatesIndex[2]);	
+		assertEquals(false, possiblyTruePredicatesIndex[2]);
 		assertEquals(false, definitelyTruePredicatesIndex[2]);
 	}
 
-	
-        @Test
+	@Test
 	public void testPartbc() throws InterruptedException {
+		
+		if (!checkC) return;
 
 		System.out.println("Check part (b)  and part (c) from the question (4)");
 
@@ -111,29 +117,28 @@ public class DebugTest {
 		// checking ---------------
 
 		// check local variables
-                assertEquals(1,processes[0].getLocalVariable());
-                assertEquals(25,processes[1].getLocalVariable());
-                assertEquals(11,processes[2].getLocalVariable());
-
+		assertEquals(1, processes[0].getLocalVariable());
+		assertEquals(25, processes[1].getLocalVariable());
+		assertEquals(11, processes[2].getLocalVariable());
 
 		// check predicates
 		boolean[] possiblyTruePredicatesIndex = monitor.getPossiblyTruePredicatesIndex();
 		boolean[] definitelyTruePredicatesIndex = monitor.getDefinitelyTruePredicatesIndex();
 
 		// predicate0
-                assertEquals(true, possiblyTruePredicatesIndex[0]);
-                assertEquals(true, definitelyTruePredicatesIndex[0]);
-                
+		assertEquals(true, possiblyTruePredicatesIndex[0]);
+		assertEquals(true, definitelyTruePredicatesIndex[0]);
+
 		// predicate1
-                assertEquals(true, possiblyTruePredicatesIndex[1]);
-                assertEquals(false, definitelyTruePredicatesIndex[1]);
+		assertEquals(true, possiblyTruePredicatesIndex[1]);
+		assertEquals(false, definitelyTruePredicatesIndex[1]);
 
 		// predicate2;
-                assertEquals(false, possiblyTruePredicatesIndex[2]);
-                assertEquals(false, definitelyTruePredicatesIndex[2]);
+		assertEquals(false, possiblyTruePredicatesIndex[2]);
+		assertEquals(false, definitelyTruePredicatesIndex[2]);
 
 		// predicate3
-                assertEquals(true, possiblyTruePredicatesIndex[3]);
-                assertEquals(true, definitelyTruePredicatesIndex[3]);
+		assertEquals(true, possiblyTruePredicatesIndex[3]);
+		assertEquals(true, definitelyTruePredicatesIndex[3]);
 	}
 }

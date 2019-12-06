@@ -21,36 +21,48 @@ public class VectorClock {
 	}
 
 	public void increment() {
-		// TODO
-		/*
-		 * Complete a code to increment the local clock component
-		 */
-
+		// Increment the entry of the vector of this process
+		vectorClock[processId]++;
 	}
 
 	public int[] get() {
-		// TODO
-		// Complete a code to return the vectorClock value
-		return null;
+		// Return vector clock
+		return vectorClock;
 	}
 
 	public void update(VectorClock other) {
-		// TODO
-		/*
-		 * Implement Supermum operation
-		 */
+		int[] otherClock = other.get();
 
+		// Iterate through all entries of vector clock
+		for (int currentEntry = 0; currentEntry < this.numberOfProcesses; currentEntry++) {
+			// If entry of other clock bigger
+			if (otherClock[currentEntry] > this.vectorClock[currentEntry]) {
+				// Overwrite my entry
+				this.vectorClock[currentEntry] = otherClock[currentEntry];
+			}		
+		}
 	}
 
 	public boolean checkConsistency(int otherProcessId, VectorClock other) {
-		//TODO
-		/*
-		 * Implement a code to check if a state is consist regarding two vector clocks (i.e. this and other).
-		 * See slide 41 from global state lecture.
-		 */
-
-		return false;
-
+		// I'm always consistent with myself
+		if(this.processId == otherProcessId) {
+			return true;
+		}
+		
+		// Get clock values as array
+		int[] otherClock = other.get();
+		
+		// Other process has a higher time in my component
+		if(otherClock[this.processId] > this.vectorClock[this.processId]) {
+			return false;
+		}
+		
+		// I have a higher time in the component of the other process
+		if(this.vectorClock[otherProcessId] > otherClock[otherProcessId]) {
+			return false;
+		}
+		
+		return true;
 	}
 
 }
