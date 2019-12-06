@@ -47,7 +47,11 @@ public class Process2 extends AbstractProcess {
 		monitor.receiveMessage(this.Id, message);
 
 		//line 4
+		this.vectorClock.increment();
+		message = new Message(new VectorClock(vectorClock), this.localVariable);
 		send(0, message); // send to process 0
+		// notify the monitor
+		monitor.receiveMessage(this.Id, message);
 
 		// send terminate signal
 		monitor.processTerminated(this.Id);

@@ -19,7 +19,7 @@ public class DebugTest {
 	public Timeout globalTimeout = Timeout.seconds(30);
 	
 	public boolean checkB = true;
-	public boolean checkC = false;
+	public boolean checkC = true;
 
 	@Test
 	public void testPartb() throws InterruptedException {

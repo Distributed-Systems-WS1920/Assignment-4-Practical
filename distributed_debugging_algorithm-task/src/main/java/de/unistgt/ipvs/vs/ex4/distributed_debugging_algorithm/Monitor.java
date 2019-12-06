@@ -2,7 +2,6 @@ package de.unistgt.ipvs.vs.ex4.distributed_debugging_algorithm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -165,6 +164,7 @@ public class Monitor implements Runnable {
 	public void buildLattice(int predicateNo, int process_i_id, int process_j_id) {
 		// Fringe for the next states
 		LinkedList<State> statesToCheck = new LinkedList<State>();
+		LinkedList<State> checkedStates = new LinkedList<State>();
 
 		// Add initial state
 		statesToCheck.add(this.states.get(0));
@@ -178,10 +178,9 @@ public class Monitor implements Runnable {
 		// -> We can know that definitelyTrue is false
 		boolean lastPredSet = false;
 		while (!statesToCheck.isEmpty()) {
-			System.out.println("Checking State: " + Arrays.toString(statesToCheck.get(0).getProcessesMessagesCurrentIndex()));
 			// Process all reachable states from current state
 			for (State currentReachableState : findReachableStates(statesToCheck.removeFirst())) {
-			
+
 				// Add only this state to our global states-List
 				this.states.add(currentReachableState);
 
@@ -192,8 +191,11 @@ public class Monitor implements Runnable {
 				// becoming true
 				if (!currentPredicate) {
 					// Add this node to states that should be checked because there is a way though
-					// the lattice
-					statesToCheck.addLast(currentReachableState);
+					// the lattice (only if the state was not added before)
+					if (!checkedStates.contains(currentReachableState)) {
+						statesToCheck.addLast(currentReachableState);
+					}
+
 				} else {
 					// Found one state where predicate is true -> can set possibbleTrue predicate
 					this.possiblyTruePredicatesIndex[predicateNo] = true;
@@ -203,6 +205,8 @@ public class Monitor implements Runnable {
 
 				// Clear global states again to ensure max. 1 element for checkPredicate()
 				this.states.clear();
+				// Mark state as already checked
+				checkedStates.add(currentReachableState);
 			}
 		}
 
@@ -245,13 +249,15 @@ public class Monitor implements Runnable {
 			// the current process) is still consistent (compare next vector clock with
 			// the current clocks of all processes)
 			for (int otherProcessId = 0; otherProcessId < this.numberOfProcesses; otherProcessId++) {
-				VectorClock otherCurrentClock = processMessages.get(messageIdsInCurrentState[otherProcessId])
-						.getVectorClock();
-				boolean consistent = msg.getVectorClock().checkConsistency(otherProcessId, otherCurrentClock);
+				if (otherProcessId != processId) {
+					VectorClock otherCurrentClock = this.processesMessages.get(otherProcessId).get(messageIdsInCurrentState[otherProcessId])
+							.getVectorClock();
+					boolean consistent = msg.getVectorClock().checkConsistency(otherProcessId, otherCurrentClock);
 
-				if (!consistent) {
-					// Skip this state, check next process for its next message
-					continue OUTER;
+					if (!consistent) {
+						// Skip this state, check next process for its next message
+						continue OUTER;
+					}
 				}
 			}
 

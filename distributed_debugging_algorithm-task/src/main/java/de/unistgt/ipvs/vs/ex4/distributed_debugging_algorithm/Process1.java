@@ -26,8 +26,12 @@ public class Process1 extends AbstractProcess {
 		monitor.receiveMessage(this.Id, message);
 
 		// line 2
+		this.vectorClock.increment();
+		message = new Message(new VectorClock(vectorClock), this.localVariable);
 		send(1, message); // send to process 1
-
+		// notify the monitor
+		monitor.receiveMessage(this.Id, message);
+		
 		// line 3
 		this.localVariable = this.localVariable * 3;
 		this.vectorClock.increment();
@@ -36,7 +40,11 @@ public class Process1 extends AbstractProcess {
 		monitor.receiveMessage(this.Id, message);
 
 		// line 4
+		this.vectorClock.increment();
+		message = new Message(new VectorClock(vectorClock), this.localVariable);
 		send(1, message); // send to process 1
+		// notify the monitor
+		monitor.receiveMessage(this.Id, message);
 
 		// line 5
 		// receive
@@ -52,7 +60,11 @@ public class Process1 extends AbstractProcess {
 		// Perform only for task c when there are 3 processes TODO: Remove if?
 		// line 6
 		if (this.vectorClock.get().length > 2) {
+			this.vectorClock.increment();
+			message = new Message(new VectorClock(vectorClock), this.localVariable);
 			send(2, message); // send to process 2
+			// notify the monitor
+			monitor.receiveMessage(this.Id, message);
 
 			// line 7
 			receivedMessage = receive(2); // receive from process 2
