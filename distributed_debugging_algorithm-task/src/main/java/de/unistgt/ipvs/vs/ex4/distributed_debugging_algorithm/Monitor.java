@@ -162,8 +162,9 @@ public class Monitor implements Runnable {
 	}
 
 	public void buildLattice(int predicateNo, int process_i_id, int process_j_id) {
-		// Fringe for the next states
+		// Keep track of states that need to be checked
 		LinkedList<State> statesToCheck = new LinkedList<State>();
+		// Keep track of states that were already checked
 		LinkedList<State> checkedStates = new LinkedList<State>();
 
 		// Add initial state
@@ -228,8 +229,7 @@ public class Monitor implements Runnable {
 		int messageIdsInCurrentState[] = state.getProcessesMessagesCurrentIndex();
 
 		// Check all processes for their next message, get its state and check if that
-		// state is reachable
-		// Stefan: For each process
+		// state is reachables
 		OUTER: for (int processId = 0; processId < this.numberOfProcesses; processId++) {
 			// Get all Messages from process
 			List<Message> processMessages = this.processesMessages.get(processId);
@@ -250,12 +250,13 @@ public class Monitor implements Runnable {
 			// the current clocks of all processes)
 			for (int otherProcessId = 0; otherProcessId < this.numberOfProcesses; otherProcessId++) {
 				if (otherProcessId != processId) {
-					VectorClock otherCurrentClock = this.processesMessages.get(otherProcessId).get(messageIdsInCurrentState[otherProcessId])
-							.getVectorClock();
+					VectorClock otherCurrentClock = this.processesMessages.get(otherProcessId)
+							.get(messageIdsInCurrentState[otherProcessId]).getVectorClock();
+					// Check if clocks are consistent
 					boolean consistent = msg.getVectorClock().checkConsistency(otherProcessId, otherCurrentClock);
 
 					if (!consistent) {
-						// Skip this state, check next process for its next message
+						// Skip inconsistent state, check next process for its next message
 						continue OUTER;
 					}
 				}
@@ -289,31 +290,37 @@ public class Monitor implements Runnable {
 	private boolean checkPredicate(int predicateNo, int process_i_Id, int process_j_id) {
 		boolean predicate = false;
 
-		for (State reachableState : this.states) {
+		// States-List should always have exactly 1 element
+		if (this.states.size() != 1) {
+			System.err.println("Something is wrong with code!");
+			return predicate;
+		}
 
-			int msg_i_id = reachableState.getProcessMessageCurrentIndex(process_i_Id);
-			int msg_j_id = reachableState.getProcessMessageCurrentIndex(process_j_id);
-			Message msg_i = this.processesMessages.get(process_i_Id).get(msg_i_id);
-			Message msg_j = this.processesMessages.get(process_j_id).get(msg_j_id);
+		// We can only have 1 element in states-list
+		State state = this.states.get(0);
 
-			switch (predicateNo) {
-			case 0:
-				predicate = Predicate.predicate0(msg_i, msg_j);
-				break;
+		// Get message of the two processes that should be compared
+		int msg_i_id = state.getProcessMessageCurrentIndex(process_i_Id);
+		int msg_j_id = state.getProcessMessageCurrentIndex(process_j_id);
+		Message msg_i = this.processesMessages.get(process_i_Id).get(msg_i_id);
+		Message msg_j = this.processesMessages.get(process_j_id).get(msg_j_id);
 
-			case 1:
-				predicate = Predicate.predicate1(msg_i, msg_j);
-				break;
+		// Check predicate depending on current predicate-ID
+		switch (predicateNo) {
+		case 0:
+			predicate = Predicate.predicate0(msg_i, msg_j);
+			break;
 
-			case 2:
-				predicate = Predicate.predicate2(msg_i, msg_j);
-				break;
+		case 1:
+			predicate = Predicate.predicate1(msg_i, msg_j);
+			break;
 
-			case 3:
-				predicate = Predicate.predicate3(msg_i, msg_j);
-				break;
-			}
+		case 2:
+			predicate = Predicate.predicate2(msg_i, msg_j);
+			break;
 
+		case 3:
+			predicate = Predicate.predicate3(msg_i, msg_j);
 			break;
 		}
 
